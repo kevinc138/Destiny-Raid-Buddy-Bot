@@ -60,6 +60,10 @@ const CommandsEnum = {
     COMMAND: "!damageReport",
     HELP: "Gives a damage report, if I ever had one.",
     ASSET: "https://github.com/Bungie-net/api/issues/354"
+  },
+  ROCK_PAPER_SCISSORS: {
+    COMMAND: "!rps",
+    HELP: "Rock Paper Scissors"
   }
 }
 Object.freeze(CommandsEnum);
@@ -125,6 +129,16 @@ module.exports = function(msg) {
         break;
       case CommandsEnum.DAMAGE_REPORT.COMMAND:
         msg.channel.send("While I can't find your damage, I know in my heart you did your best. Next time try just dying if you're so curious. Or bother bungo here: " + CommandsEnum.DAMAGE_REPORT.ASSET);
+      break;
+      case CommandsEnum.ROCK_PAPER_SCISSORS.COMMAND:
+        var rand = Math.floor(Math.random() * 3);
+        if(rand == 0) {
+          msg.reply("Rock", {files : ["./assets/TheRock.jpeg"]});
+        } else if(rand == 1) {
+          msg.reply("Paper", {files: ["./assets/DunderMifflin.jpg"]});
+        } else if(rand == 2) {
+          msg.reply("Scissors", {files: ["./assets/EdwardScissorHands.jpg"]});
+        }
       break;
       case "!GARDENSUX":
         msg.channel.send("but Divinity, tho...");
@@ -276,6 +290,9 @@ module.exports = function(msg) {
       case "!errorTest":
         console.log("This is an error test.");
         var breakingValue = undefinedVar.undefinedValue;
+      break;
+      case "!testable":
+        return "yes";
       break;
     }
   }
