@@ -36,6 +36,14 @@ exports.BetaCommands = {
   LAST_ACTIVITY: {
     COMMAND: "!lastActStats",
     HELP: "Gives basic information on your last activity."
+  },
+  RPS_BETA: {
+    COMMAND: "!RPS2",
+    HELP: "RPS Beta"
+  },
+  RPS_LOOKUP: {
+    COMMAND: "!RPS_Stats",
+    HELP: "RPS W/L/T stats"
   }
 }
 
