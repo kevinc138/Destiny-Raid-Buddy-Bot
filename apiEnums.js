@@ -12,6 +12,12 @@ exports.CLASS_TYPE = {
   WARLOCK: 2
 }
 
+exports.RPS = {
+  ROCK: 0,
+  PAPER: 1,
+  SCISSORS: 2
+}
+
 exports.BetaCommands = {
   HELP: {
     COMMAND: "!drb_betaHelp",
@@ -40,10 +46,6 @@ exports.BetaCommands = {
   RPS_BETA: {
     COMMAND: "!RPS2",
     HELP: "RPS Beta"
-  },
-  RPS_LOOKUP: {
-    COMMAND: "!RPS_Stats",
-    HELP: "RPS W/L/T stats"
   }
 }
 
