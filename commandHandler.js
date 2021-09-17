@@ -7,6 +7,7 @@ require('dotenv').config();
 const enums = require('./apiEnums');
 const RPSUser =  require('./models/RPSUser');
 const RPSRecord = require('./models/RPSRecord');
+const RPSGame = require('./models/RPSGame');
 const BUNGIE_TOKEN = process.env.BUNGIE_TOKEN;
 const DRB_USERNAME = 'Destiny Raid Buddy';
 var Datastore = require('nedb');
@@ -17,6 +18,7 @@ const DRB_ADMIN = process.env.DRB_ADMIN;
 var activeGame = false;
 var activeOpponent = null;
 var activeRpsRoll = null;
+const activeGames = new Map(); //Key: Channel, Value: RPSGame {Player : Roll}
 
 
 /**
@@ -76,6 +78,10 @@ const CommandsEnum = {
   ROCK_PAPER_SCISSORS: {
     COMMAND: "!rps",
     HELP: "Rock Paper Scissors"
+  },
+  RPS_LOOKUP: {
+    COMMAND: "!RPS_Stats",
+    HELP: "RPS W/L/T stats"
   }
 }
 Object.freeze(CommandsEnum);
@@ -173,10 +179,7 @@ module.exports = function(msg) {
         msg.channel.send("just testing");
         console.log(msg);
       break;
-      case "!rps2":
-        doRps(msg);
-        break;
-      case enums.BetaCommands.RPS_LOOKUP.COMMAND.toLowerCase():
+      case CommandsEnum.RPS_LOOKUP.COMMAND.toLowerCase():
         rpsDataLookup(msg);
         break;
       case CommandsEnum.XUR.COMMAND.toLowerCase():
@@ -489,11 +492,11 @@ module.exports = function(msg) {
 
   function rpsRoll(msg) {
     var rand = Math.floor(Math.random() * 3);
-        if(rand == 0) {
+        if(rand == enums.RPS.ROCK) {
           msg.reply("Rock", {files : ["./assets/TheRock.jpeg"]});
-        } else if(rand == 1) {
+        } else if(rand == enums.RPS.PAPER) {
           msg.reply("Paper", {files: ["./assets/DunderMifflin.jpg"]});
-        } else if(rand == 2) {
+        } else if(rand == enums.RPS.SCISSORS) {
           msg.reply("Scissors", {files: ["./assets/EdwardScissorHands.jpg"]});
         }
         return rand;
@@ -502,75 +505,153 @@ module.exports = function(msg) {
 
   //Entry point for RPS matches
   function doRps(msg) {
-    if(activeGame && activeOpponent != null && activeRpsRoll != null) {
-      let newRoll = rpsRoll(msg);
-      determineRpsWinner(msg, newRoll);
-    }
-    else {
-      activeOpponent = msg.author.username;
-      activeGame = true;
-      activeRpsRoll = rpsRoll(msg);
+    if(activeGames.has(msg.channel.id)) {
+      determineRpsWinner(msg, rpsRoll(msg)); 
+    } else {
+      activeGames.set(msg.channel.id, new RPSGame(msg.author.username, rpsRoll(msg)));
     }
   }
 
+  /**
+   * PlayerOne - the player that initiated the game.
+   * PlayerTwo - the challenger that plays second.
+   * 
+   * Looks up the active game in the activeGames map.
+   * Deletes the game (channelId) from the activeGames map.
+   * 
+   */
   function determineRpsWinner(msg, secondRoll) {
 
-    let playerOne = activeOpponent; //TODO: Change this to a map lookup by channelId
+    let activeRpsGame = activeGames.get(msg.channel.id);
+    let activeRpsRoll = activeRpsGame.roll;
+    let playerOne = activeRpsGame.username;
+
     let playerTwo = msg.author.username;
     
     //Tie
     if(activeRpsRoll == secondRoll) {
       msg.reply("It's a tie!");
-      rpsIncrementTie(msg, playerOne, playerTwo);
+      rpsIncrementTies(msg, playerOne, playerTwo);
     } 
 
     //Rock vs Scissors
-    else if(activeRpsRoll == 0 && secondRoll == 2) {
-      msg.reply(playerOne + " wins! Rock vs Scissors!");
-      rpsIncrementRecords(msg, playerOne, playerTwo);
+    else if(activeRpsRoll == enums.RPS.ROCK && secondRoll == enums.RPS.SCISSORS) {
+      msg.channel.send(playerOne + " wins! Rock vs Scissors!");
+      rpsIncrementRecords(msg, playerOne, playerTwo, true);
     }
-    else if(activeRpsRoll == 2 && secondRoll == 0) {
-      msg.reply("You win! Scissors vs Rock!");
-      rpsIncrementRecords(msg, playerTwo, playerOne);
+    else if(activeRpsRoll == enums.RPS.SCISSORS && secondRoll == enums.RPS.ROCK) {
+      msg.channel.send(playerTwo + " wins! Scissors vs Rock!");
+      rpsIncrementRecords(msg, playerTwo, playerOne, false);
     }
 
     //Scissors vs Paper
-    else if(activeRpsRoll == 2 && secondRoll == 1) {
-      msg.reply(playerOne + " wins! Scissors vs Paper!");
-      rpsIncrementRecords(msg, playerOne, playerTwo);
+    else if(activeRpsRoll == enums.RPS.SCISSORS && secondRoll == enums.RPS.PAPER) {
+      msg.channel.send(playerOne + " wins! Scissors vs Paper!");
+      rpsIncrementRecords(msg, playerOne, playerTwo, true);
     }
-    else if(activeRpsRoll == 1 && secondRoll == 2) {
-      msg.reply("You win! Paper vs Scissors!");
-      rpsIncrementRecords(msg, playerTwo, playerOne);
+    else if(activeRpsRoll == enums.RPS.PAPER && secondRoll == enums.RPS.SCISSORS) {
+      msg.channel.send(playerTwo + " wins! Paper vs Scissors!");
+      rpsIncrementRecords(msg, playerTwo, playerOne, false);
     }
 
     //Paper vs Rock
-    else if(activeRpsRoll == 1 && secondRoll == 0) {
-      msg.reply(playerOne + " wins! Paper vs Rock!");
-      rpsIncrementRecords(msg, playerOne, playerTwo);
+    else if(activeRpsRoll == enums.RPS.PAPER && secondRoll == enums.RPS.ROCK) {
+      msg.channel.send(playerOne + " wins! Paper vs Rock!");
+      rpsIncrementRecords(msg, playerOne, playerTwo, true);
     }
-    else if(activeRpsRoll == 0 && secondRoll == 1) {
-      msg.reply(playerTwo + " wins! Rock vs Paper!");
-      rpsIncrementRecords(msg, playerTwo, playerOne);
+    else if(activeRpsRoll == enums.RPS.ROCK && secondRoll == enums.RPS.PAPER) {
+      msg.channel.send(playerTwo + " wins! Rock vs Paper!");
+      rpsIncrementRecords(msg, playerTwo, playerOne, false);
     }
 
-    activeOpponent = null;
-    activeGame = false;
-    activeRpsRoll = null;
+    activeGames.delete(msg.channel.id);
   }
 
 
-  function rpsIncrementRecords(msg, winner, loser) {
+  /**
+   * Increments the records of the winner and loser of an rps match.
+   * 
+   * WinnerIsPlayerOne - This _only_ comes into play when someone is playing against themself. To make the data context meaningful, we'll always want to store from the perspective of winning or losing from the initiating side; ergo, PlayerOne. This is a retrofitted fix, so it's a little clunky.
+   */
+  function rpsIncrementRecords(msg, winner, loser, winnerIsPlayerOne) {
 
+    //TODO: A lot of the logic in incrementWin/Loss could probably be abstracted to another function if I learn a bit more about how objects work in Javascript; specifically with storing and retrieving from nedb. (Or perhaps just switch to mongo or another simple document store)
+
+    //Special logic for playing yourself.
+    //Note: We don't need this for ties, just writing once works.
+    if(winner == loser) {
+
+      //Did your initiating self win or lose?
+      if(winnerIsPlayerOne) {
+        rpsIncrementWin(msg, winner, loser);
+      } else {
+        rpsIncrementLoss(msg, winner, loser);
+      }
+      return;
+    }
+
+    //update the winner
+    rpsIncrementWin(msg, winner, loser);
+
+    //update the loser
+    rpsIncrementLoss(msg, winner, loser);
+
+  }
+
+
+  /**
+   * Increment loss for the loser.
+   * 
+   */
+  function rpsIncrementLoss(msg, winner, loser) {
+    rpsDB.find({'user' : loser}, function(err, docs) {
+      if(docs.length > 0) {
+        var newTotalLosses = docs[0].totalLosses + 1;
+        let newUserRecords = docs[0].userRecords;
+
+        var foundOpponent = false;
+        for(i = 0; i < newUserRecords.length; i++) {
+          if(newUserRecords[i].opponent == winner) {
+            newUserRecords[i].losses = newUserRecords[i].losses + 1;
+            foundOpponent = true;
+            break;
+          }
+        }
+
+        if(!foundOpponent) {
+                    console.log("didn't find the opponent: " + winner + " under user: " + loser);
+                    console.log(newUserRecords);
+          newUserRecords.push(new RPSRecord(winner, 0, 1, 0));
+        }
+
+        rpsDB.update({'user' : loser}, {$set :{ totalLosses : newTotalLosses, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
+      } 
+
+      //Gotta create the record if it doesn't exist.
+      else {
+        let newUserRecords = [];
+        newUserRecords.push(new RPSRecord(winner, 0, 1, 0));
+        rpsDB.update({'user' : loser}, {$set : {totalWins : 0, totalLosses : 1, totalTies : 0, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
+      }
+    })
+  }
+
+/**
+ * Increment win for the winner.
+ * 
+ */
+  function rpsIncrementWin(msg, winner, loser) {
     rpsDB.find({'user' : winner}, function(err, docs) {
       if(docs.length == 1) {
         let newTotalWins = docs[0].totalWins + 1;
         let newUserRecords = docs[0].userRecords;
 
         var foundOpponent = false;
+
+        //Change vs record.
         for(let i=0; i < newUserRecords.length; i++) {
           if(newUserRecords[i].opponent == loser) {
-          newUserRecords[i].totalWins = newUserRecords[i].totalWins + 1;
+          newUserRecords[i].wins = newUserRecords[i].wins + 1;
           foundOpponent = true;
           break;
           }
@@ -597,228 +678,15 @@ module.exports = function(msg) {
         msg.reply("Tell the bot owner that something broke while updating records.");
       }
     });
-
-    //If you want to play yourself, fine, but I'm not updating twice.
-    if(winner == loser) {
-      return;
-    }
-
-     //Update the loser
-    rpsDB.find({'user' : loser}, function(err, docs) {
-      if(docs.length > 0) {
-        var newTotalLosses = docs[0].totalLosses + 1;
-        let newUserRecords = docs[0].userRecords;
-
-        var foundOpponent = false;
-        for(i = 0; i < newUserRecords.length; i++) {
-          if(newUserRecords[i].opponent == winner) {
-            newUserRecords[i].totalLosses = newUserRecords[i].totalLosses + 1;
-            foundOpponent = true;
-            break;
-          }
-        }
-
-        if(!foundOpponent) {
-                    console.log("didn't find the opponent: " + winner + " under user: " + loser);
-                    console.log(newUserRecords);
-          newUserRecords.push(new RPSRecord(winner, 0, 1, 0));
-        }
-
-        rpsDB.update({'user' : activeOpponent}, {$set :{ totalLosses : newTotalLosses, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
-      } 
-
-      //Gotta create the record if it doesn't exist.
-      else {
-        let newUserRecords = [];
-        newUserRecords.push(new RPSRecord(winner, 0, 1, 0));
-        rpsDB.update({'user' : loser}, {$set : {totalWins : 0, totalLosses : 1, totalTies : 0, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
-      }
-    })
-  }
-
-/**
- * Increment the original challenger's loss.
- */
-  function rpsIncrementActiveOpponentLoss(msg, activeOpponent) {
-    let msgUser = msg.author.username;
-
-    //Update the sender of the active message (the winner).
-    rpsDB.find({'user' : msgUser}, function(err, docs) {
-      if(docs.length > 0) {
-
-      var newTotalWins = docs[0].totalWins + 1;
-      let newUserRecords = docs[0].userRecords;
-
-      var foundOpponent = false;
-      for(i = 0; i < newUserRecords.length; i++) {
-        if(newUserRecords[i].opponent == activeOpponent) {
-          newUserRecords[i].totalWins = newUserRecords[i].totalWins + 1;
-          foundOpponent = true;
-          break;
-        }
-      }
-
-      if(!foundOpponent) {
-        newUserRecords.push(new RPSRecord(activeOpponent, 1, 0, 0));
-      }
-
-      rpsDB.update({'user' : msgUser}, { $set : {totalWins : newTotalWins, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
-      } 
-
-      //Gotta create the record if it doesn't exist.
-      else {
-        let newUserRecords = [];
-        newUserRecords.push(new RPSRecord(activeOpponent, 1, 0, 0));
-        rpsDB.update({'user' : msgUser}, { $set : {totalWins : 1, totalLosses : 0, totalTies : 0, userRecords : newUserRecords}},{ upsert: true },  function(err, docs) {      });
-
-      }
-    });
-
-    //Update the activeOpponent (The loser).
-    rpsDB.find({'user' : activeOpponent}, function(err, docs) {
-      if(docs.length > 0) {
-        var newTotalLosses = docs[0].totalLosses + 1;
-        let newUserRecords = docs[0].userRecords;
-
-        var foundOpponent = false;
-        for(i = 0; i < newUserRecords.length; i++) {
-          if(newUserRecords[i].opponent == msgUser) {
-            newUserRecords[i].totalLosses = newUserRecords[i].totalLosses + 1;
-            foundOpponent = true;
-            break;
-          }
-        }
-
-        if(!foundOpponent) {
-          newUserRecords.push(new RPSRecord(msgUser, 0, 1, 0));
-        }
-
-        rpsDB.update({'user' : activeOpponent}, {$set :{ totalLosses : newTotalLosses, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
-      } 
-
-      //Gotta create the record if it doesn't exist.
-      else {
-        let newUserRecords = [];
-        newUserRecords.push(new RPSRecord(msgUser, 0, 1, 0));
-        rpsDB.update({'user' : activeOpponent}, {$set : {totalWins : 0, totalLosses : 1, totalTies : 0, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
-      }
-    })
-    
-  }
-
-/**
- * Increment the original challenger's win.
- */
-  function rpsIncrementActiveOpponentWin(msg, activeOpponent) {
-    let msgUser = msg.author.username;
-
-    //Update the sender of the active message (the loser).
-    rpsDB.find({'user' : msgUser}, function(err, docs) {
-      if(docs.length > 0) {
-        var newTotalLosses = docs[0].totalLosses + 1;
-        let newUserRecords = docs[0].userRecords;
-
-        var foundOpponent = false;
-        for(i = 0; i < newUserRecords.length; i++) {
-          if(newUserRecords[i].opponent == activeOpponent) {
-            newUserRecords[i].totalLosses = newUserRecords[i].totalLosses + 1;
-            foundOpponent = true;
-            break;
-          }
-        }
-
-        if(!foundOpponent) {
-          newUserRecords.push(new RPSRecord(activeOpponent, 0, 1, 0))
-        }
-        rpsDB.update({'user' : msgUser}, {$set :{ totalLosses : newTotalLosses, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
-      }
-
-      //Gotta create the record if it doesn't exist.
-      else {
-        let newUserRecords = [];
-        newUserRecords.push(new RPSRecord(activeOpponent, 0, 1, 0))
-
-        rpsDB.update({'user': msgUser}, {$set : {totalWins : 0, totalLosses : 1, totalTies : 0, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {
-
-        });
-      }
-
-      
-    });
-
-    //Update the activeOpponent (The winner).
-    rpsDB.find({'user' : activeOpponent}, function(err, docs) {
-
-      if(docs.length > 0) {
-      var newTotalWins = docs[0].totalWins + 1;
-      let newUserRecords = docs[0].userRecords;
-
-      var foundOpponent = false;
-      for(i = 0; i < newUserRecords.length; i++) {
-        if(newUserRecords[i].opponent == msgUser) {
-          newUserRecords[i].totalWins = newUserRecords[i].totalWins + 1;
-          foundOpponent = true;
-          break;
-        }
-      }
-
-      if(!foundOpponent) {
-        newUserRecords.push(new RPSRecord(msgUser, 1, 0, 0))
-      }
-
-      rpsDB.update({'user' : activeOpponent}, { $set : {totalWins : newTotalWins, userRecords : newUserRecords}}, { upsert: true }, function(err, docs) {      });
-      } 
-
-      //Gotta create the record if it doesn't exist.
-      else {
-        let newUserRecords = [];
-        newUserRecords.push(new RPSRecord(msgUser, 0, 1, 0))
-        rpsDB.update({'user': activeOpponent},  {$set : {totalWins : 1, totalLosses : 0, totalTies : 0, userRecords : newUserRecords}}, { upsert: true },function(err, docs) {
-
-        });
-      }
-    })
   }
 
 /**
  * Increment ties
  */
-  function rpsIncrementTie(msg, playerOne, playerTwo) {
+  function rpsIncrementTies(msg, playerOne, playerTwo) {
 
     //Update playerOne
-    rpsDB.find({'user' : playerOne}, function(err, docs) {
-      if(docs.length > 0) {
-
-        var newTotalTies = docs[0].totalTies + 1;
-        let newUserRecords = docs[0].userRecords;
-
-
-        var foundOpponent = false;
-        for(i = 0; i < newUserRecords.length; i++) {
-          if(newUserRecords[i].opponent == playerTwo) {
-            newUserRecords[i].totalTies = newUserRecords[i].totalTies + 1;
-            foundOpponent = true;
-            break;
-          }
-        }
-
-        if(!foundOpponent) {
-          newUserRecords.push(new RPSRecord(playerTwo, 0, 0, 1))
-        }
-
-        rpsDB.update({'user' : playerOne}, {$set : {totalTies : newTotalTies, userRecords : newUserRecords}}, { upsert: true },function(err, docs) {      });
-      }
-      //Gotta create the record if it doesn't exist.
-      else {
-        let newUserRecords = [];
-        newUserRecords.push(new RPSRecord(playerTwo, 0, 0, 1))
-        rpsDB.update({'user': playerOne},  {$set : {totalWins : 0, totalLosses : 0, totalTies : 1, userRecords : newUserRecords}}, { upsert: true },function(err, docs) {
-
-        });
-
-      }
-
-    });
+    rpsIncrementTie(msg, playerOne, playerTwo);
 
     //If you want to play yourself, fine, but I'm not updating twice.
     if(playerOne == playerTwo) {
@@ -826,7 +694,11 @@ module.exports = function(msg) {
     }
 
     //Update playerTwo
-    rpsDB.find({'user' : playerTwo}, function(err, docs) {
+    rpsIncrementTie(msg, playerTwo, playerOne);
+  }
+
+  function rpsIncrementTie(msg, player, opponent) {
+    rpsDB.find({'user' : player}, function(err, docs) {
       if(docs.length > 0) {
 
         var newTotalTies = docs[0].totalTies + 1;
@@ -834,32 +706,39 @@ module.exports = function(msg) {
 
         var foundOpponent = false;
         for(i = 0; i < newUserRecords.length; i++) {
-          if(newUserRecords[i].opponent == playerOne) {
-            newUserRecords[i].totalTies = newUserRecords[i].totalTies + 1;
+          if(newUserRecords[i].opponent == opponent) {
+            newUserRecords[i].ties = newUserRecords[i].ties + 1;
             foundOpponent = true;
             break;
           }
         }
 
         if(!foundOpponent) {
-          newUserRecords.push(new RPSRecord(playerOne, 0, 0, 1))
+          newUserRecords.push(new RPSRecord(opponent, 0, 0, 1))
         }
 
-        rpsDB.update({'user' : playerTwo}, {$set : { totalTies : newTotalTies, userRecords : newUserRecords}}, { upsert: true },function(err, docs) {      });
-      } 
-
+        rpsDB.update({'user' : player}, {$set : {totalTies : newTotalTies, userRecords : newUserRecords}}, { upsert: true },function(err, docs) {      });
+      }
+      //Gotta create the record if it doesn't exist.
       else {
         let newUserRecords = [];
-        newUserRecords.push(new RPSRecord(playerOne, 0, 0, 1))
-        rpsDB.update({'user': playerTwo},  {$set : {totalWins : 0, totalLosses : 0, totalTies : 1, userRecords : newUserRecords}}, { upsert: true },function(err, docs) {
+        newUserRecords.push(new RPSRecord(opponent, 0, 0, 1))
+        rpsDB.update({'user': player},  {$set : {totalWins : 0, totalLosses : 0, totalTies : 1, userRecords : newUserRecords}}, { upsert: true },function(err, docs) {
 
         });
+
       }
-    })
+
+    });
   }
 
   function rpsDataLookup(msg) {
     rpsDB.find({'user': msg.author.username}, function(err, docs) {
+      if(docs.length == 0) {
+        msg.reply("Sorry, I have no records for you. If you believe this is an error, you can only blame yourself.");
+        return;
+      }
+
       console.log(docs[0]); 
 
       var reply = "Here are your stats: \n```";
@@ -867,7 +746,7 @@ module.exports = function(msg) {
       reply += "Total Losses: " + docs[0].totalLosses + "\n";
       reply += "Total Ties: " + docs[0].totalTies + "\n";
       reply += "Total Games: " + (docs[0].totalWins + docs[0].totalLosses + docs[0].totalTies) + "\n";
-      reply += "\nOpponent\tWins\tLosses\tTies\n";
+      reply += "\nvs. Opponent\tWins\tLosses\tTies\n";
 
       var sb = "";
       for(let i=0; i < docs[0].userRecords.length; i++) {
@@ -880,7 +759,7 @@ module.exports = function(msg) {
 
     
       msg.reply(reply);
-      msg.reply(JSON.stringify(docs[0]));
+      //msg.reply(JSON.stringify(docs[0]));
 
     })
 
