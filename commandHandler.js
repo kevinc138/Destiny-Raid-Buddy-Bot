@@ -129,6 +129,9 @@ module.exports = function(msg) {
       case CommandsEnum.LW_SYMBOLS.COMMAND.toLowerCase():
         msg.channel.send({files: [CommandsEnum.LW_SYMBOLS.ASSET]});
         break;
+      case CommandsEnum.LW_SYMBOLS_CCR.COMMAND.toLowerCase():
+        msg.channel.send({files: [CommandsEnum.LW_SYMBOLS_CCR.ASSET]});
+        break;
       case CommandsEnum.DSC_SECURITY.COMMAND.toLowerCase():
         msg.channel.send({files: [CommandsEnum.DSC_SECURITY.ASSET]});
         break;
