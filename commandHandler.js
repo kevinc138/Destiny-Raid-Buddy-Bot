@@ -41,11 +41,6 @@ const CommandsEnum = {
     HELP: "This command will paste an image of last wish symbols.",
     ASSET: './assets/LWSymbols.png'
   },
-  LW_SYMBOLS_CCR: {
-    COMMAND: "!LW_Symbols_CCR",
-    HELP: "This command will paste an image of the true last wish symbols.",
-    ASSET: './assets/LWSymbols_CCR.png'
-  },
   DSC_SECURITY: {
     COMMAND: "!DSC_Security",
     HELP: "This command will paste an image of DSC Crypt Security encounter arena.",
@@ -133,10 +128,13 @@ module.exports = function(msg) {
         msg.channel.send({files: [CommandsEnum.RIVEN_EYES.ASSET]});
         break;
       case CommandsEnum.LW_SYMBOLS.COMMAND.toLowerCase():
-        msg.channel.send({files: [CommandsEnum.LW_SYMBOLS.ASSET]});
-        break;
-      case CommandsEnum.LW_SYMBOLS_CCR.COMMAND.toLowerCase():
-        msg.channel.send({files: [CommandsEnum.LW_SYMBOLS_CCR.ASSET]});
+        var rand = Math.floor(Math.random() * 10);
+        console.log(rand);
+        if(rand == 9) {
+          msg.channel.send("CORNCOB RAZORBLADES BABY!", {files : ["./assets/LWSymbols_CCR.png"]});
+        } else {
+          msg.channel.send({files: [CommandsEnum.LW_SYMBOLS.ASSET]});
+        }
         break;
       case CommandsEnum.DSC_SECURITY.COMMAND.toLowerCase():
         msg.channel.send({files: [CommandsEnum.DSC_SECURITY.ASSET]});
