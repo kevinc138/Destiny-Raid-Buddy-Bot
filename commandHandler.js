@@ -41,6 +41,11 @@ const CommandsEnum = {
     HELP: "This command will paste an image of last wish symbols.",
     ASSET: './assets/LWSymbols.png'
   },
+  LW_SYMBOLS_CCR: {
+    COMMAND: "!LW_Symbols_CCR",
+    HELP: "This command will paste an image of the true last wish symbols.",
+    ASSET: './assets/LWSymbols_CCR.png'
+  },
   DSC_SECURITY: {
     COMMAND: "!DSC_Security",
     HELP: "This command will paste an image of DSC Crypt Security encounter arena.",
@@ -129,6 +134,9 @@ module.exports = function(msg) {
         break;
       case CommandsEnum.LW_SYMBOLS.COMMAND.toLowerCase():
         msg.channel.send({files: [CommandsEnum.LW_SYMBOLS.ASSET]});
+        break;
+      case CommandsEnum.LW_SYMBOLS_CCR.COMMAND.toLowerCase():
+        msg.channel.send({files: [CommandsEnum.LW_SYMBOLS_CCR.ASSET]});
         break;
       case CommandsEnum.DSC_SECURITY.COMMAND.toLowerCase():
         msg.channel.send({files: [CommandsEnum.DSC_SECURITY.ASSET]});
