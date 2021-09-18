@@ -1,2 +1,4 @@
 /database
 .breakpoints
+.env
+/node_modules
