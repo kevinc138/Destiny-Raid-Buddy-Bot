@@ -129,7 +129,6 @@ module.exports = function(msg) {
         break;
       case CommandsEnum.LW_SYMBOLS.COMMAND.toLowerCase():
         var rand = Math.floor(Math.random() * 10);
-        console.log(rand);
         if(rand == 9) {
           msg.channel.send("CORNCOB RAZORBLADES BABY!", {files : ["./assets/LWSymbols_CCR.png"]});
         } else {
