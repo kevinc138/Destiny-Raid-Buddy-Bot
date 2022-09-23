@@ -19,10 +19,6 @@ exports.RPS = {
 }
 
 exports.BetaCommands = {
-  HELP: {
-    COMMAND: "!drb_betaHelp",
-    HELP: "This command will display all defined in-development beta commands. There is no guarantee of intended behavior." 
-  },
   SET_PROFILE_ID: {
     COMMAND: "!setMyDestinyProfileById",
     HELP: "Set your destiny profile manually by known Id and membershipType. => '!setMyDestinyProfileById {membershipId} {membershipType}'"
@@ -46,6 +42,26 @@ exports.BetaCommands = {
   RPS_BETA: {
     COMMAND: "!RPS2",
     HELP: "RPS Beta"
+  },
+  ADD_GAME_DISTRO: {
+    COMMAND: "!addGameDistro",
+    HELP: "Adds a game distro if it does not exist. Add by '!addGameDistro {gameName}'"
+  },
+  PING_GAME_DISTRO: {
+    COMMAND: "!p",
+    HELP: "Pings all subscribers to a game's distro."
+  },
+  ADD_GAME_SUBSCRIPTION: {
+    COMMAND: "!subscribe",
+    HELP: "Adds yourself to a game's distro list. Add by '!subscribe {gameName}'"
+  },
+  REMOVE_GAME_SUBSCRIPTION: {
+    COMMAND: "!unsubscribe",
+    HELP: "Removes yourself from a game's distro list. Remove by '!unsubscribe {gameName}'"
+  },
+  LIST_GAME_DISTROS: {
+    COMMAND: "!listGameDistros",
+    HELP: "Lists all game distros for your server. Not yet implemented"
   }
 }
 
@@ -53,5 +69,9 @@ exports.DevCommands = {
   REFRESH_ACTIVITY_MANIFEST: {
     COMMAND: "!refreshActivityManifest",
     HELP: "Refreshes the local copy of the activity manifest json from Bungie.net"
+  },
+  REMOVE_GAME_DISTRO: {
+    COMMAND: "!removeGameDistro",
+    HELP: "Removes a game's distro list. Remove by '!removeGameDistro {gameName}'"
   }
 }
